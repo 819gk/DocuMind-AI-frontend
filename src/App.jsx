@@ -22,6 +22,7 @@ export default function App() {
     localStorage.setItem('knowly_token', data.token);
     localStorage.setItem('knowly_user', JSON.stringify(data.user));
   }
+  
   function logout() {
     setToken(''); setUser(null); setDocuments([]); setMessages([]);
     localStorage.removeItem('knowly_token'); localStorage.removeItem('knowly_user');
