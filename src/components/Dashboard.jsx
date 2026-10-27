@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api.js';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -12,6 +12,7 @@ export default function Dashboard() {
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
+  const chatMessagesRef = useRef(null);
 
   function handleRequestError(requestError) {
     setError(requestError.message);
@@ -38,6 +39,13 @@ export default function Dashboard() {
   useEffect(() => {
     Promise.all([refreshDocuments(), refreshHistory()]).catch(handleRequestError);
   }, [token]);
+
+  useEffect(() => {
+    const chatMessages = chatMessagesRef.current;
+    if (chatMessages) {
+      chatMessages.scrollTo({ top: chatMessages.scrollHeight, behavior: 'smooth' });
+    }
+  }, [messages, busy]);
 
   async function upload(event) {
     const file = event.target.files?.[0];
@@ -127,8 +135,8 @@ export default function Dashboard() {
           </section>
           <section className="panel chat-panel">
             <div className="panel-heading"><div><h2>Ask your documents</h2><p className="muted">Answers are grounded in retrieved sources.</p></div><span className="sparkle">✧</span></div>
-            <div className="chat-messages">
-              {messages.length === 0 && <div className="chat-welcome"><div className="welcome-orb">✧</div><h3>What would you like to know?</h3><p>Ask a question about the documents in your knowledge base.</p><div className="suggestions"><button onClick={() => onQuestionChange('Summarize the key points in my documents.')}>Summarize key points</button><button onClick={() => onQuestionChange('What are the most important requirements?')}>Find requirements</button></div></div>}
+            <div className="chat-messages" ref={chatMessagesRef}>
+              {messages.length === 0 && <div className="chat-welcome"><div className="welcome-orb">✧</div><h3>What would you like to know?</h3><p>Ask a question about the documents in your knowledge base.</p><div className="suggestions"><button onClick={() => setQuestion('Summarize the key points in my documents.')}>Summarize key points</button><button onClick={() => setQuestion('What are the most important requirements?')}>Find requirements</button></div></div>}
               {messages.map((message, index) => <article className={`message ${message.role}`} key={`${index}-${message.role}`}><div className="message-role">{message.role === 'user' ? 'You' : '✧ DocuMind AI'}</div><p>{message.content}</p>{message.role === 'assistant' && message.citations?.length > 0 && <div className="citations"><strong>Retrieved sources</strong>{message.citations.map((c, i) => <div className="citation" key={`${c.documentId}-${c.pageNumber}-${i}`}><span className="source-ref">{c.ref || `S${i+1}`}</span><div><strong>{c.fileName}</strong><small>Page {c.pageNumber}{typeof c.score === 'number' ? ` · relevance ${(c.score * 100).toFixed(0)}%` : ''}</small><p>{c.excerpt}</p></div></div>)}</div>}</article>)}
               {busy && <div className="typing"><span></span><span></span><span></span> Searching sources and generating answer…</div>}
             </div>
