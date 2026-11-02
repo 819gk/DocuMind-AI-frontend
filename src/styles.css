@@ -333,6 +333,19 @@ width: 50px;
   background: #fff0ee;
   padding: 9px 6px;
   border-radius: 6px;
+  min-width: 32px;
+  text-align: center;
+}
+.file-icon.xlsx,
+.file-icon.csv {
+  color: #287b50;
+  background: #e8f6eb;
+}
+.file-icon.png,
+.file-icon.jpg,
+.file-icon.webp {
+  color: #6256a5;
+  background: #f0edff;
 }
 .document-meta {
   display: grid;
@@ -402,7 +415,8 @@ width: 50px;
 .chat-panel {
   display: flex;
   flex-direction: column;
-  max-height: 590px;
+  /* max-height: 590px; */
+  max-height: 620px;
   /* min-height: 620px; */
 }
 .chat-messages {
@@ -530,6 +544,30 @@ width: 50px;
   border-top: 1px solid #edf0ed;
   padding: 14px 16px 16px;
   margin-top: auto;
+}
+.ai-quick-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.ai-quick-actions span {
+  color: #758179;
+  font-size: 9px;
+  font-weight: 700;
+  margin-right: 2px;
+}
+.ai-quick-actions button {
+  border: 1px solid #e3ebe5;
+  border-radius: 20px;
+  background: #f7faf7;
+  color: #38644d;
+  padding: 6px 9px;
+  font-size: 9px;
+}
+.ai-quick-actions button:hover:not(:disabled) {
+  background: #eaf5ed;
 }
 .chat-form textarea {
   /* resize: vertical; */

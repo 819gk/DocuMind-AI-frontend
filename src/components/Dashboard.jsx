@@ -82,19 +82,18 @@ export default function Dashboard() {
     }
   }
 
-  async function ask(event) {
-    event.preventDefault();
-    const value = question.trim();
-    if (!value || busy) return;
+  async function askQuestion(value) {
+    const trimmedQuestion = value.trim();
+    if (!trimmedQuestion || busy) return;
     setQuestion('');
     setError('');
-    setMessages(previous => [...previous, { role: 'user', content: value }]);
+    setMessages(previous => [...previous, { role: 'user', content: trimmedQuestion }]);
     setBusy(true);
     try {
       const result = await api('/chat', {
         token,
         method: 'POST',
-        body: JSON.stringify({ question: value }),
+        body: JSON.stringify({ question: trimmedQuestion }),
       });
       setMessages(previous => [...previous, {
         role: 'assistant',
@@ -112,6 +111,23 @@ export default function Dashboard() {
     }
   }
 
+  async function ask(event) {
+    event.preventDefault();
+    await askQuestion(question);
+  }
+
+  function runQuickAction(prompt) {
+    setQuestion(prompt);
+    askQuestion(prompt);
+  }
+
+  const hasReadyDocuments = documents.some(document => document.status === 'ready');
+
+  function documentType(document) {
+    const extension = document.originalName.split('.').pop()?.toUpperCase() || 'DOC';
+    return extension === 'JPEG' ? 'JPG' : extension;
+  }
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -126,21 +142,21 @@ export default function Dashboard() {
         {error && <div className="notice">{error}<button className="text-button" onClick={() => setError('')}>Dismiss</button></div>}
         <div className="dashboard-grid">
           <section className="panel docs-panel">
-            <div className="panel-heading"><div><h2>Your documents</h2><p className="muted">Upload PDFs to build your private knowledge base.</p></div><label className="upload-button">{uploading ? 'Processing…' : '+ Upload PDF'}<input type="file" accept="application/pdf,.pdf" onChange={upload} disabled={uploading} hidden /></label></div>
+            <div className="panel-heading"><div><h2>Your documents</h2><p className="muted">Upload files to build your private knowledge base.</p></div><label className="upload-button">{uploading ? 'Processing…' : '+ Upload file'}<input type="file" accept=".pdf,.docx,.xlsx,.csv,.png,.jpg,.jpeg,.webp,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv,image/png,image/jpeg,image/webp" onChange={upload} disabled={uploading} hidden /></label></div>
             <div className="document-list">
-              {documents.length === 0 && <div className="empty"><div className="empty-icon">↥</div><strong>No documents yet</strong><span>Upload a text-based PDF to get started.</span></div>}
-              {documents.map(doc => <div className="document-row" key={doc._id}><div className="pdf-icon">PDF</div><div className="document-meta"><strong title={doc.originalName}>{doc.originalName}</strong><span>{(doc.sizeBytes / 1024).toFixed(0)} KB · {doc.chunkCount} chunks</span></div><span className={`doc-status ${doc.status}`}>{doc.status}</span><button className="icon-button delete" title="Delete document" onClick={() => deleteDocument(doc._id)}>×</button></div>)}
+              {documents.length === 0 && <div className="empty"><div className="empty-icon">↥</div><strong>No documents yet</strong><span>Upload a PDF, spreadsheet, or image to get started.</span></div>}
+              {documents.map(doc => <div className="document-row" key={doc._id}><div className={`pdf-icon file-icon ${documentType(doc).toLowerCase()}`}>{documentType(doc)}</div><div className="document-meta"><strong title={doc.originalName}>{doc.originalName}</strong><span>{(doc.sizeBytes / 1024).toFixed(0)} KB · {doc.chunkCount} chunks</span></div><span className={`doc-status ${doc.status}`}>{doc.status}</span><button className="icon-button delete" title="Delete document" onClick={() => deleteDocument(doc._id)}>×</button></div>)}
             </div>
-            <p className="hint">PDFs up to 10 MB · Scanned PDFs require OCR, which isn't included.</p>
+            <p className="hint">PDF, DOCX, XLSX, CSV, PNG, JPG, or WebP · Up to 10 MB · Images are read with AI.</p>
           </section>
           <section className="panel chat-panel">
             <div className="panel-heading"><div><h2>Ask your documents</h2><p className="muted">Answers are grounded in retrieved sources.</p></div><span className="sparkle">✧</span></div>
             <div className="chat-messages" ref={chatMessagesRef}>
               {messages.length === 0 && <div className="chat-welcome"><div className="welcome-orb">✧</div><h3>What would you like to know?</h3><p>Ask a question about the documents in your knowledge base.</p><div className="suggestions"><button onClick={() => setQuestion('Summarize the key points in my documents.')}>Summarize key points</button><button onClick={() => setQuestion('What are the most important requirements?')}>Find requirements</button></div></div>}
-              {messages.map((message, index) => <article className={`message ${message.role}`} key={`${index}-${message.role}`}><div className="message-role">{message.role === 'user' ? 'You' : '✧ DocuMind AI'}</div><p>{message.content}</p>{message.role === 'assistant' && message.citations?.length > 0 && <div className="citations"><strong>Retrieved sources</strong>{message.citations.map((c, i) => <div className="citation" key={`${c.documentId}-${c.pageNumber}-${i}`}><span className="source-ref">{c.ref || `S${i+1}`}</span><div><strong>{c.fileName}</strong><small>Page {c.pageNumber}{typeof c.score === 'number' ? ` · relevance ${(c.score * 100).toFixed(0)}%` : ''}</small><p>{c.excerpt}</p></div></div>)}</div>}</article>)}
+              {messages.map((message, index) => <article className={`message ${message.role}`} key={`${index}-${message.role}`}><div className="message-role">{message.role === 'user' ? 'You' : '✧ DocuMind AI'}</div><p>{message.content}</p>{message.role === 'assistant' && message.citations?.length > 0 && <div className="citations"><strong>Retrieved sources</strong>{message.citations.map((c, i) => <div className="citation" key={`${c.documentId}-${c.pageNumber}-${i}`}><span className="source-ref">{c.ref || `S${i+1}`}</span><div><strong>{c.fileName}</strong><small>{c.sourceLocation || `Page ${c.pageNumber}`}{typeof c.score === 'number' ? ` · relevance ${(c.score * 100).toFixed(0)}%` : ''}</small><p>{c.excerpt}</p></div></div>)}</div>}</article>)}
               {busy && <div className="typing"><span></span><span></span><span></span> Searching sources and generating answer…</div>}
             </div>
-            <form className="chat-form" onSubmit={ask}><textarea value={question} onChange={event => setQuestion(event.target.value)} placeholder="Ask a question about your documents…" rows="2" maxLength="2000" /><div className="chat-form-bottom"><span></span><button disabled={busy || !question.trim()}>{busy ? 'Thinking…' : 'Ask AI ↑'}</button></div></form>
+            <form className="chat-form" onSubmit={ask}>{hasReadyDocuments && <div className="ai-quick-actions"><span>AI tools</span><button type="button" disabled={busy} onClick={() => runQuickAction('Summarize the key points, findings, and conclusions in my uploaded documents. Cite the sources.')}>Summarize</button><button type="button" disabled={busy} onClick={() => runQuickAction('Create a 5-question quiz from my uploaded documents. Include the answers after the questions and cite the sources.')}>Create quiz</button><button type="button" disabled={busy} onClick={() => runQuickAction('Extract the key action items, owners, and deadlines from my uploaded documents. Cite the sources and mark missing details clearly.')}>Find action items</button></div>}<textarea value={question} onChange={event => setQuestion(event.target.value)} placeholder="Ask a question about your documents…" rows="2" maxLength="2000" /><div className="chat-form-bottom"><span></span><button disabled={busy || !question.trim()}>{busy ? 'Thinking…' : 'Ask AI ↑'}</button></div></form>
           </section>
         </div>
       </main>
